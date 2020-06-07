@@ -82,8 +82,9 @@ class BntxSwizzler(ImageFile.PyDecoder if pil else object):
 class BntxImageFile(ImageFile.ImageFile if pil else object): 
   format = "BNTX"
   format_description = "Nintendo BNTX Multi-Texture"
+
   #this isn't working for some reason?
-  _close_exclusive_fp_after_loading = False #this isn't documented for some reason?
+  _close_exclusive_fp_after_loading = False #this isn't documented
 
   if not pil:
     def __init__(self, fd): #shim constructor if we're not using PIL
@@ -95,6 +96,7 @@ class BntxImageFile(ImageFile.ImageFile if pil else object):
   def _open(self):
     global pil
     global DEBUG
+    self._close_exclusive_fp_after_loading = False
     fd = self.fp
     self.fd = fd
     dat = fd.read(32) #size of BNTX struct
