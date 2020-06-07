@@ -24,14 +24,14 @@
 
 import struct, sys
 
-import dds
+from . import dds
 
 try:
     import pyximport; pyximport.install()
-    import swizzle_cy as swizzle
+    from . import swizzle_cy as swizzle
 
 except:
-    import swizzle
+    from . import swizzle
 
 DIV_ROUND_UP = swizzle.DIV_ROUND_UP
 
