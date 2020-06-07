@@ -6,7 +6,9 @@ def round_up(x, y):
     return ((x - 1) | (y - 1)) + 1
 
 
-def _swizzle(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, data, toSwizzle):
+#rename _swizzle to avoid conflict with C module name
+def swizzle_impl(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, data, toSwizzle):
+    image_width_in_gobs = DIV_ROUND_UP(width * bpp, 64) #move this up here so it only gets computed once.
     assert 0 <= size_range <= 5
     block_height = 1 << size_range
 
@@ -29,7 +31,7 @@ def _swizzle(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_
                 pos = y * pitch + x * bpp
 
             else:
-                pos = getAddrBlockLinear(x, y, width, bpp, 0, block_height)
+                pos = getAddrBlockLinear(x, y, image_width_in_gobs, bpp, 0, block_height)
 
             pos_ = (y * width + x) * bpp
 
@@ -44,18 +46,17 @@ def _swizzle(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_
 
 
 def deswizzle(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, data):
-    return _swizzle(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, bytes(data), 0)
+    return swizzle_impl(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, bytes(data), 0)
 
 
 def swizzle(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, data):
-    return _swizzle(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, bytes(data), 1)
+    return swizzle_impl(width, height, blkWidth, blkHeight, bpp, tileMode, alignment, size_range, bytes(data), 1)
 
 
-def getAddrBlockLinear(x, y, image_width, bytes_per_pixel, base_address, block_height):
+def getAddrBlockLinear(x, y, image_width_in_gobs, bytes_per_pixel, base_address, block_height):
     """
     From the Tegra X1 TRM
     """
-    image_width_in_gobs = DIV_ROUND_UP(image_width * bytes_per_pixel, 64)
 
     GOB_address = (base_address
                    + (y // (8 * block_height)) * 512 * block_height * image_width_in_gobs
@@ -68,3 +69,9 @@ def getAddrBlockLinear(x, y, image_width, bytes_per_pixel, base_address, block_h
                + ((x % 32) // 16) * 32 + (y % 2) * 16 + (x % 16))
 
     return Address
+
+try:
+  #import the new C deswizzler
+  from ._swizzle import *
+except ImportError:
+  pass
